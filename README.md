@@ -1,70 +1,82 @@
-# Getting Started with Create React App
+# Sinatra/React Image Upload Demo
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Set up the Sinatra template for the backend
+1. clone https://github.com/learn-co-curriculum/phase-3-sinatra-react-project.git image-upload-backend
+1. cd image-upload-backend
+1. rm -rf .canvas .git .github
+1. bundle install
+1. git init; git add . ; git commit -m init
+1. rake server
 
-## Available Scripts
+## Set up a React app for the frontend
+1. npx create-react-app image-upload-frontend
+1. cd image-upload-frontend
+1. npm start
+1. (optional) delete all the junk from the default react app:
+	webvitals, logo, boilerplate App, etc
 
-In the project directory, you can run:
+## Add the upload form on the frontend
+```html
+<h1>Upload File</h1>
+<form onSubmit={uploadImage}>
+  <label htmlFor="file">File:</label>
+  <input type="file" name="image" onChange={handleImageChange} />
+  <button type="submit">Upload</button>
+</form>
+```
 
-### `npm start`
+## Set up your handlers
+```js
+const [imageUrl, setImageUrl] = useState();
+const [file, setFile] = useState();
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+function handleImageChange(e) {
+  setFile(e.target.files[0])
+  console.log(e.target.files[0])
+}
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+function uploadImage(e) {
+  e.preventDefault();
+  const formData = new FormData();
+  formData.append('image', file);
 
-### `npm test`
+  fetch('http://localhost:9292/upload', {
+    method: 'POST',
+    body:formData,
+  })
+    .then((res) => res.json())
+    .then(json => setImageUrl(`http://localhost:9292/${json.url}`));
+}
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Add a bit to display the image once uploaded
+```js
+{ imageUrl ? <img src={imageUrl} alt={imageUrl} /> : '' }
+```
 
-### `npm run build`
+## On the backend:
+- create folder in app: public/images
+- in ApplicationCcntroller, set the public dir:
+```ruby
+set :public_folder, 'app/public'
+```
+- and image directory:
+```ruby
+set :image_dir, File.join(settings.public_folder, 'images')
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## In your controller, add the upload route
+```ruby
+post '/upload' do
+  if params[:image]
+    filename = params[:image][:filename]
+    tempfile = params[:image][:tempfile]
+    FileUtils.copy(tempfile, File.join(settings.image_dir, filename))
+    {status: "ok", url: "/images/#{filename}"}.to_json
+  else
+    {status: "error", message: "no file"}
+  end
+end
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Now when you submit a file through the form, the backend will grab the filename and the temporary file, copy the temp file to the images dir, and send back a url to access it!
