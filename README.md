@@ -1,5 +1,7 @@
 # Sinatra/React Image Upload Demo
 
+(Backend repo is here: https://github.com/marcmajcher/sinatra-react-file-upload-demo-backend)
+
 ## Set up the Sinatra template for the backend
 1. clone https://github.com/learn-co-curriculum/phase-3-sinatra-react-project.git image-upload-backend
 1. cd image-upload-backend
